@@ -23,7 +23,7 @@ HCHC 001065963 _
 HCHP 001521211 '
 PTEC HC.. S
 IINST 001 I
-IMAX 008 2
+IMAX 008 2 
 PMAX 06030 3
 PAPP 01250 +
 HHPHC E 0
@@ -32,7 +32,45 @@ PPOT 00 #
 ADCO 524563565245 /
 OPTARIF HC.. <
 ISOUSC 20 8
+
+ADCO 524563565245 /
+OPTARIF HC.. <
+ISOUSC 20 8
+HCHC 001065963 _
+HCHP 001521211 '
+PTEC HC.. S
+IINST1 001 I
+IINST2 001 I
+IINST3 001 I
+IMAX1 008 2 
+IMAX2 008 2 
+IMAX3 008 2 
+PMAX 06030 3
+PAPP 01250 +
+HHPHC E 0
+MOTDETAT 000000 B
+PPOT 00 #
+ADCO 524563565245 /
+OPTARIF HC.. <
+ISOUSC 20 8
+
 */
+
+typedef struct { 
+  long long hchc;  
+  long long hchp;
+  int iinst1;
+  int iinst2;
+  int iinst3;
+  int imax1;
+  int imax2;
+  int imax3;
+  int pmax;
+  int papp; 
+    int battery; 
+} PayloadTX;      // create structure - a neat way of packaging data for RF comms
+PayloadTX emontx;                                                       
+
 
 #define FILTERSETTLETIME 5000                                           //  Time (ms) to allow the filters to settle before sending data
 
@@ -49,13 +87,33 @@ ISR(WDT_vect) { Sleepy::watchdogEvent(); }                              // Attac
 #include "EmonLib.h"
 EnergyMonitor ct1,ct2,ct3;                                              // Create  instances for each CT channel
 
-typedef struct { int power1, power2, power3, battery; } PayloadTX;      // create structure - a neat way of packaging data for RF comms
-PayloadTX emontx;                                                       
-
 const int LEDpin = 9;                                                   // On-board emonTx LED 
 
 boolean settled = false;
 SoftwareSerial cptSerial(5, 6);
+
+char receivedChar ='\0';
+char frame[512] ="ADCO 524563565245 / \
+  OPTARIF HC.. < \
+  ISOUSC 20 8 \
+  HCHC 001065963 _\
+  HCHP 001521211 '\
+  PTEC HC.. S\
+  IINST1 001 I\
+  IINST2 001 I\
+  IINST3 001 I\
+  IMAX1 008 2 \
+  IMAX2 008 2 \
+  IMAX3 008 2 \
+  PMAX 06030 3\
+  PAPP 01250 +\
+  HHPHC E 0\
+  MOTDETAT 000000 B\
+  PPOT 00 #\
+  ADCO 524563565245 /\
+  OPTARIF HC.. <\
+  ISOUSC 20 8";
+int i = 0;
 
 void send_rf_data()
 {
@@ -83,7 +141,8 @@ void match_callback  (const char * match,          // matching string (not null-
                       const unsigned int length,   // length of matching string
                       const MatchState & ms)      // MatchState in use (to get captures)
 {
-char cap [10];   // must be large enough to hold captures
+#if 1
+  char cap [10];   // must be large enough to hold captures
   
   Serial.print ("Matched: ");
   Serial.write ((byte *) match, length);
@@ -98,9 +157,8 @@ char cap [10];   // must be large enough to hold captures
     Serial.println (cap); 
     Serial.println (atol(cap), DEC);
     }  // end of for each capture
-
+#endif
 }  // end of match_callback 
-
 
 void setup ()
 {
@@ -117,39 +175,102 @@ void setup ()
   
   if (UNO) wdt_enable(WDTO_8S);                   // Enable anti crash (restart) watchdog if UNO bootloader is selected. Watchdog does not work with duemilanove bootloader                                                             // Restarts emonTx if sketch hangs for more than 8s
 
-  unsigned long count;
-
-  // what we are searching (the target)
-  //char buf [100] = "The quick brown fox jumps over the lazy wolf";
-  char buf [100] = "ADCO 524 /";
-  // match state object
-  MatchState ms (buf);
-
-  // original buffer
-  Serial.println (buf);
-
-  // search for three letters followed by a space (two captures)
-//  count = ms.GlobalMatch ("(%a+)( )", match_callback);
-
-  count = ms.GlobalMatch ("(%a+)%s+(%d+)", match_callback);
-
-  // show results
-  Serial.print ("Found ");
-  Serial.print (count);            // 8 in this case
-  Serial.println (" matches.");
-
 }  // end of setup  
 
 void loop () {
+unsigned long count;
+char value [10]; 
 
   /* Monitor the baterry of emontx */
   emontx.battery = ct1.readVcc();                                      //read emonTx battey (supply voltage)
   Serial.print(" "); Serial.print(emontx.battery);
   Serial.println(); delay(100);
 
-  /* Read teleinfo */
-  if (cptSerial.available())
-    Serial.write(cptSerial.read() & 0x7F);
+#if 0
+  /* Read a teleinfo frame */
+  while(receivedChar != 0x02) // Wait for the beginning of the frame
+  {
+    if (cptSerial.available())
+   //   Serial.write(cptSerial.read() & 0x7F);
+      receivedChar = cptSerial.read() & 0x7F;   
+  }
+  i = 0;
+  while(receivedChar != 0x03) // 
+  {
+    if (cptSerial.available()) {
+   //   Serial.write(cptSerial.read() & 0x7F);
+      receivedChar = cptSerial.read() & 0x7F;
+      frame[i++] = receivedChar;
+    }  
+  }
+  frame[i++]='\0';
+#endif
+  
+  /* Print original buffer */
+  //Serial.println (frame);
+  
+  /* Match state object */
+  MatchState ms;
+  
+  /* string we are searching in */
+  ms.Target (frame);
+
+  /* Init the TxPayload Structure */
+  emontx.hchc = 0;
+  emontx.hchp = 0;
+  emontx.imax1 = emontx.imax2= emontx.imax3 = 0;
+  emontx.iinst1 = emontx.iinst2= emontx.iinst3 = 0;
+  emontx.papp = emontx.papp = 0;
+  
+  ms.Match ("HCHC%s+(%d+)");
+  ms.GetCapture(value, 0);
+  emontx.hchc = atol(value);      
+  
+  ms.Match ("HCHP%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.hchp = atol(value);      
+  
+  ms.Match ("IINST1%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.iinst1 = atoi(value);      
+    
+  ms.Match ("IINST2%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.iinst2 = atoi(value);      
+    
+  ms.Match ("IINST3%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.iinst3 = atoi(value);      
+
+  ms.Match ("IMAX1%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.imax1 = atoi(value);      
+    
+  ms.Match ("IMAX2%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.imax2 = atoi(value);      
+    
+  ms.Match ("IMAX3%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.imax3 = atoi(value);      
+
+  ms.Match ("PMAX%s+(%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.pmax = atoi(value);      
+  
+  ms.Match ("PAPP (%d+)", 0);
+  ms.GetCapture(value, 0);
+  emontx.papp = atol(value);      
+  
+  // show results
+  Serial.print ("Found ");
+  //Serial.print (count);            // 8 in this case
+  //Serial.println (" matches.");
+
+  // original buffer
+  //Serial.println (frame);
+
+  //count = ms.GlobalMatch ("(%a+)%s+(%d+)", match_callback);
 
   // because millis() returns to zero after 50 days ! 
   if (!settled && millis() > FILTERSETTLETIME) settled = true;
@@ -161,3 +282,4 @@ void loop () {
     emontx_sleep(5);                                                      // sleep or delay in seconds - see emontx_lib
   }
 }
+
