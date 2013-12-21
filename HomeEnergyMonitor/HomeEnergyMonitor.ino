@@ -78,7 +78,8 @@ typedef struct { int temperature; } PayloadGLCD;
 PayloadGLCD emonglcd;
 
 int hour = 12, minute = 0;
-double usekwh = 0;
+double usekwhHp = 0;
+double usekwhHc = 0;
 byte page = 1;
 
 const int greenLED=6;               // Green tri-color LED
@@ -91,8 +92,6 @@ int cval_use = 0;
 //-------------------------------------------------------------------------------------------- 
 unsigned long last_emontx;                   // Used to count time from last emontx update
 unsigned long last_emonbase;                   // Used to count time from last emontx update
-
-
 
 //--------------------------------------------------------------------------------------------
 // Setup
@@ -113,7 +112,7 @@ void setup()
   pinMode(greenLED, OUTPUT); 
   pinMode(redLED, OUTPUT); 
 
-  Serial.begin (9600);
+//  Serial.begin (9600);
 }
 
 //--------------------------------------------------------------------------------------------
@@ -121,7 +120,9 @@ void setup()
 //--------------------------------------------------------------------------------------------
 void loop()
 {
-  
+  //--------------------------------------------------------------------------------------------
+  // Receive Meter information and time through RF12
+  //--------------------------------------------------------------------------------------------
   if (rf12_recvDone())
   {
     if (rf12_crc == 0 && (rf12_hdr & RF12_HDR_CTL) == 0)  // and no rf errors
@@ -137,8 +138,6 @@ void loop()
     }
   }
 
-
-
   //--------------------------------------------------------------------------------------------
   // Display update every 200ms
   //--------------------------------------------------------------------------------------------
@@ -151,21 +150,21 @@ void loop()
     hour = now.hour();
     minute = now.minute();
 
-    usekwh += (emontx.hchp - previousHchp)*0.2/3600; //(emontx.power1 * 0.2) / 3600000;
+    usekwhHp += (emontx.hchp - previousHchp)*0.2/3600; //(emontx.power1 * 0.2) / 3600000;
+    usekwhHc += (emontx.hchc - previousHchc)*0.2/3600; //(emontx.power1 * 0.2) / 3600000;
     previousHchp = emontx.hchp;
-    if (last_hour == 23 && hour == 00) usekwh = 0;                //reset Kwh/d counter at midnight
+    previousHchc = emontx.hchc;
+    
+    if (last_hour == 23 && hour == 00) usekwhHc = usekwhHp = 0;                //reset Kwh/d counter at midnight
     cval_use = cval_use + (emontx.papp - cval_use)*0.50;        //smooth transitions
     
     last_switch_state = switch_state;
     switch_state = digitalRead(switch1);  
     if (!last_switch_state && switch_state) { page += 1; if (page>3) page = 1; }
     
-    Serial.print ("emontx "); 
-    Serial.println ((int)&emontx, HEX); 
-
     if (page==1)
     {
-      draw_power_page( "POWER" ,cval_use, "USE", usekwh);
+      draw_power_page( "POWER" ,cval_use, usekwhHc, usekwhHp);
     }
     else if (page == 2)
     {
