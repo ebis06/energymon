@@ -70,7 +70,7 @@ boolean settled = false;
 SoftwareSerial cptSerial(5, 6);
 
 char receivedChar ='\0';
-char frame[512] ="PAPP 02680 1";
+char frame[512] ="PAPP 02680 1\0";
 /* ADCO 524563565245 /\
   OPTARIF HC.. < \
   ISOUSC 20 8 \
@@ -114,6 +114,64 @@ void emontx_sleep(int seconds) {
       if (UNO) wdt_reset();
     } 
   // } else Sleepy::loseSomeTime(seconds*1000);
+}
+
+int findInMatch(MatchState* ms, char* label)
+{
+char value [10] = ""; 
+char checksum[8] = "";
+unsigned char sum = 0;		// Somme des codes ASCII du message + un espace
+unsigned char i = 0;		
+ 
+  ms->Match ("(%a+).(%d+).(%d+)");
+  ms->GetCapture(label, 0);
+  ms->GetCapture(value, 1);
+  ms->GetCapture(checksum, 2);
+#if DEBUG  
+  Serial.print(label);Serial.print(":"); Serial.println(value);
+  Serial.print("CKSUM:"); Serial.println(checksum);
+#endif
+  sum = 0x40;
+
+#if DEBUG
+  Serial.print("lENGTH of labal = ");Serial.println(strlen(label), DEC);
+  Serial.print("lENGTH of value = ");Serial.println(strlen(value), DEC);
+#endif
+  
+  for (i=0; i < strlen(label); i++) {
+#if DEBUG    
+    Serial.print("First sum = ");Serial.println(sum, HEX);
+    Serial.println(label[i], HEX);
+#endif
+    sum = sum + label[i];
+#if DEBUG    
+    Serial.println(sum, HEX);
+#endif
+
+  }
+#if DEBUG  
+  Serial.print(strlen(value));
+#endif
+  for (i=0; i < strlen(value); i++) {
+#if DEBUG    
+    Serial.println(sum, HEX);
+    Serial.println(value[i], HEX);
+#endif
+    sum = sum + value[i];
+#if DEBUG    
+  Serial.println(sum, HEX);
+#endif
+  }
+  //Serial.print("Computed checksum: ");Serial.println(sum, HEX);
+    sum = (sum & 0x3F);// + 0x20 ;
+#if DEBUG
+  Serial.print("Computed checksum: ");Serial.println(sum, HEX);
+  Serial.print("Provided checksum: ");Serial.println(atoi(checksum), HEX);
+#endif
+  if(sum == checksum[0])
+    return 1;
+  else
+    return 0;
 }
 
 int checkSumCheck(char *label, char *value, char checksum) 
@@ -179,9 +237,9 @@ void setup ()
 void loop () {
 #if 1
 unsigned long count;
+char label[8] = "";
 char value [10] = ""; 
 char checksum[8] = "";
-char label[8] = "";
 unsigned char sum = 0;		// Somme des codes ASCII du message + un espace
   /* Monitor the baterry of emontx */
   emontx.battery = ct1.readVcc();                                      //read emonTx battey (supply voltage)
@@ -228,95 +286,63 @@ unsigned char sum = 0;		// Somme des codes ASCII du message + un espace
   emontx.imax1 = emontx.imax2= emontx.imax3 = 0;
   emontx.iinst1 = emontx.iinst2= emontx.iinst3 = 0;
   emontx.papp = emontx.papp = 0;
-  
-  ms.Match ("HCHC.(%d+).(%d+)");
-  ms.GetCapture(value, 0);
-  ms.GetCapture(checksum, 1);
-  //Serial.print("HCHC :"); Serial.println(value);
-  //Serial.print("CKSUM:"); Serial.println(atoi(checksum), DEC);
-  strcpy("HCHC ", label);
-  for (i=0; i < strlen(label); i++) {
-    sum = sum + label[i];
-    //Serial.println(sum, DEC);
+        
+  if (findInMatch(&ms, "HCHC"))
+  {
+    Serial.println("Found correct HCHC value");
+    emontx.hchc =  (unsigned int)(atol(value)/1000);      
   }
-  for (i=0; i < strlen(value); i++) {
-    sum = sum + label[i];
-  //  Serial.println(sum, DEC);
+
+  
+  if (findInMatch(&ms, "HCHP"))
+  {
+    Serial.println("Found correct HCHP value");
+    emontx.hchp =  (unsigned int)(atol(value)/1000); 
   }
-  sum = (sum + 32) & 63 ;
-//  Serial.print("Computed checksum: ");Serial.print(sum);Serial.print(" ");Serial.println(sum, DEC);
-  //if(sum == atoi(checksum))
-{
-    emontx.hchc = (unsigned int)(atol(value)/1000);      
+
+  if (findInMatch(&ms, "IINST1"))
+  {
+    Serial.println("Found correct IINST1 value");
+    emontx.iinst1 = atol(value);      
   }
-  
-  
-  ms.Match ("HCHP%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.hchp = (unsigned int)(atol(value)/1000);      
-  
-  ms.Match ("IINST1%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.iinst1 = atoi(value);      
+
+  if (findInMatch(&ms, "IINST2"))
+  {
+    Serial.println("Found correct IINST2 value");
+    emontx.iinst2 = atol(value);      
+  }
     
-  ms.Match ("IINST2%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.iinst2 = atoi(value);      
-    
-  ms.Match ("IINST3%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.iinst3 = atoi(value);      
-
-  ms.Match ("IMAX1%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.imax1 = atoi(value);      
-    
-  ms.Match ("IMAX2%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.imax2 = atoi(value);      
-    
-  ms.Match ("IMAX3%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.imax3 = atoi(value);      
-
-  ms.Match ("PMAX%s+(%d+)");
-  ms.GetCapture(value, 0);
-  emontx.pmax = atoi(value);      
-  
-//  ms.Match ("PAPP (%d+)");
-//  ms.GetCapture(value, 0);
-//  emontx.papp = atol(value);      
-
-
-  ms.Match ("PAPP.(%d+).(%d+)");
-  ms.GetCapture(value, 0);
-  ms.GetCapture(checksum, 1);
-  Serial.print("PAPP :"); Serial.println(value);
-  Serial.print("CKSUM:"); Serial.println(checksum);
-  strcpy(label, "PAPP ");
-  sum = 0x20;
-  Serial.print("lENGTH of labal = ");Serial.println(strlen(label), DEC);
-  Serial.print("lENGTH of value = ");Serial.println(strlen(value), DEC);
-  
-  for (i=0; i < strlen(label); i++) {
-    Serial.print("First sum = ");Serial.println(sum, HEX);
-    Serial.println(label[i], HEX);
-    sum = sum + label[i];
-    Serial.println(sum, HEX);
-
+  if (findInMatch(&ms, "IINST3"))
+  {
+    Serial.println("Found correct IINST3 value");
+    emontx.iinst3 = atol(value);      
   }
-  Serial.print(strlen(value));
-  for (i=0; i < strlen(value); i++) {
-    Serial.println(sum, HEX);
-    Serial.println(value[i], HEX);
-    sum = sum + value[i];
-    Serial.println(sum, HEX);
+  
+  if (findInMatch(&ms, "IMAX1"))
+  {
+    Serial.println("Found correct IMAX1 value");
+    emontx.imax1 = atol(value);      
   }
-  //Serial.print("Computed checksum: ");Serial.println(sum, HEX);
-    sum = (sum & 0x3F);// + 0x20 ;
-  Serial.print("Computed checksum: ");Serial.println(sum, HEX);
-  Serial.print("Provided checksum: ");Serial.println(atoi(checksum), HEX);
-  if(sum == checksum[0])
+
+  if (findInMatch(&ms, "IMAX2"))
+  {
+    Serial.println("Found correct IMAX2 value");
+    emontx.imax2 = atol(value);      
+  }
+    
+  if (findInMatch(&ms, "IMAX3"))
+  {
+    Serial.println("Found correct IMAX3 value");
+    emontx.imax3 = atol(value);      
+  }
+
+  if (findInMatch(&ms, "PMAX"))
+  {
+    Serial.println("Found correct PMAX value");
+    emontx.pmax = atol(value);      
+  }
+  
+  if (findInMatch(&ms, "PAPP"))
   {
     Serial.println("Found correct PAPP value");
     emontx.papp = atol(value);      
