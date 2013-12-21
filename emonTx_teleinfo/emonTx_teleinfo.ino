@@ -32,42 +32,20 @@ PPOT 00 #
 ADCO 524563565245 /
 OPTARIF HC.. <
 ISOUSC 20 8
-
-ADCO 524563565245 /
-OPTARIF HC.. <
-ISOUSC 20 8
-HCHC 001065963 _
-HCHP 001521211 '
-PTEC HC.. S
-IINST1 001 I
-IINST2 001 I
-IINST3 001 I
-IMAX1 008 2 
-IMAX2 008 2 
-IMAX3 008 2 
-PMAX 06030 3
-PAPP 01250 +
-HHPHC E 0
-MOTDETAT 000000 B
-PPOT 00 #
-ADCO 524563565245 /
-OPTARIF HC.. <
-ISOUSC 20 8
-
 */
 
 typedef struct { 
-  long long hchc;  
-  long long hchp;
-  int iinst1;
-  int iinst2;
-  int iinst3;
-  int imax1;
-  int imax2;
-  int imax3;
-  int pmax;
-  int papp; 
-    int battery; 
+  unsigned int hchc;  
+  unsigned int hchp;
+  unsigned int iinst1;
+  unsigned int iinst2;
+  unsigned int iinst3;
+  unsigned int imax1;
+  unsigned int imax2;
+  unsigned int imax3;
+  unsigned int pmax;
+  unsigned int papp; 
+  unsigned int battery; 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 PayloadTX emontx;                                                       
 
@@ -206,9 +184,6 @@ char value [10];
   frame[i++]='\0';
 #endif
   
-  /* Print original buffer */
-  //Serial.println (frame);
-  
   /* Match state object */
   MatchState ms;
   
@@ -224,11 +199,11 @@ char value [10];
   
   ms.Match ("HCHC%s+(%d+)");
   ms.GetCapture(value, 0);
-  emontx.hchc = atol(value);      
+  emontx.hchc = (unsigned int)(atol(value)/1000);      
   
   ms.Match ("HCHP%s+(%d+)", 0);
   ms.GetCapture(value, 0);
-  emontx.hchp = atol(value);      
+  emontx.hchp = (unsigned int)(atol(value)/1000);      
   
   ms.Match ("IINST1%s+(%d+)", 0);
   ms.GetCapture(value, 0);
