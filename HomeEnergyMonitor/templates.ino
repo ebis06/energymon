@@ -74,13 +74,13 @@ void draw_raw2_page(PayloadTX *emontx)
   
   strcpy(str,"PAPP:");
   glcd.drawString(0,27,str);
-  itoa((int)emontx->iinst2,str,10);
+  itoa((int)emontx->papp,str,10);
   strcat(str," VA");   
   glcd.drawString(70,27,str);
   
   strcpy(str,"PMAX: ");
   glcd.drawString(0,36,str);
-  itoa((int)emontx->iinst3,str,10);
+  itoa((int)emontx->pmax,str,10);
   strcat(str," W");   
   glcd.drawString(70,36,str);  
 }
