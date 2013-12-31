@@ -53,7 +53,7 @@ PayloadTX emontx;
 
 //#define FILTERSETTLETIME 5000              //  Time (ms) to allow the filters to settle before sending data
 
-#define FILTERSETTLETIME 5000             //  Time (ms) to allow the filters to settle before sending data
+#define FILTERSETTLETIME 500             //  Time (ms) to allow the filters to settle before sending data
 
 #define FRAME_SIZE (256)
 
@@ -76,10 +76,10 @@ boolean settled = false;
 SoftwareSerial mySerialOne(5, 6);
 SoftwareSerial mySerialTwo(8, 9); // Dummy connection to be able to disable mySerialOne
 char receivedChar ='\0';
-//char frame[FRAME_SIZE];
+char frame[FRAME_SIZE];
 //char frame[FRAME_SIZE] ="HCHC 008784338 /\0";
 //char frame[FRAME_SIZE] ="PAPP 01820 ,\0";
-#if 1
+#if 0
 char frame[FRAME_SIZE] ="ADCO 041130079749 D \
 OPTARIF HC.. < \
 ISOUSC 20 8 \
@@ -115,8 +115,8 @@ void send_rf_data()
   // set the sync mode to 2 if the fuses are still the Arduino default
   // mode 3 (full powerdown) can only be used with 258 CK startup fuses
   
-  rf12_sendWait(2);
-  //rf12_sendWait(1);
+  //rf12_sendWait(2);
+  rf12_sendWait(1);
   
   rf12_sleep(RF12_SLEEP);
 }
@@ -186,8 +186,10 @@ unsigned char i = 0;
     Serial.print("Found correct "); Serial.print(label);Serial.print(" with value ");Serial.println(value);
     return 1;
   }  
-  else
+  else {
+    Serial.print("Found incorrect checksum for "); Serial.print(label);Serial.print(" with value ");Serial.print(value);Serial.print(" and checksum ");Serial.println(sum);
     return 0;
+  }
 }
   
 
@@ -236,7 +238,7 @@ char value [32] = "";
 
   Serial.print ("Free Mem: ");Serial.print (freeRam());Serial.println (" B");
   
-#if 0
+#if 1
   /* Read a teleinfo frame */
   mySerialOne.listen();
 
@@ -251,7 +253,7 @@ char value [32] = "";
   {
     if (mySerialOne.available()) {
       receivedChar = mySerialOne.read() & 0x7F;
-      Serial.write(receivedChar);
+//      Serial.write(receivedChar);
       frame[i++] = receivedChar;
       if( i > (FRAME_SIZE-1))
       {
