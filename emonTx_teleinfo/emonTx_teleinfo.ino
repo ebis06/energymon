@@ -15,25 +15,7 @@
 #include <SoftwareSerial.h>
 #define DEBUG (0)
 #define TEST_SERIAL (0)
-
-/* Example of data transmitted:
-ADCO 524563565245 /
-OPTARIF HC.. <
-ISOUSC 20 8
-HCHC 001065963 _
-HCHP 001521211 '
-PTEC HC.. S
-IINST 001 I
-IMAX 008 2 
-PMAX 06030 3
-PAPP 01250 +
-HHPHC E 0
-MOTDETAT 000000 B
-PPOT 00 #
-ADCO 524563565245 /
-OPTARIF HC.. <
-ISOUSC 20 8
-*/
+#define READ_TELEINFO (1)
 
 typedef struct { 
   unsigned int hchc;  
@@ -49,7 +31,6 @@ typedef struct {
   unsigned int battery; 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 PayloadTX emontx;                                                       
-
 
 //#define FILTERSETTLETIME 5000              //  Time (ms) to allow the filters to settle before sending data
 
@@ -76,14 +57,17 @@ boolean settled = false;
 SoftwareSerial mySerialOne(5, 6);
 SoftwareSerial mySerialTwo(8, 9); // Dummy connection to be able to disable mySerialOne
 char receivedChar ='\0';
+
+#if READ_TELEINFO
 char frame[FRAME_SIZE];
-//char frame[FRAME_SIZE] ="HCHC 008784338 /\0";
+//char frame[FRAME_SIZE] ="HCHC 033784338 /\0";
 //char frame[FRAME_SIZE] ="PAPP 01820 ,\0";
-#if 0
+#else
+/* Example of data transmitted:*/
 char frame[FRAME_SIZE] ="ADCO 041130079749 D \
 OPTARIF HC.. < \
 ISOUSC 20 8 \
-HCHC 008784348 / \
+HCHC 008784338 / \
 HCHP 014186978 ? \
 PTEC HP..   \
 IINST1 001 I \
@@ -134,16 +118,18 @@ int findInMatch(MatchState* ms, char* label, char* value)
 {
 char regex [24] = "";
 char checksum[8] = "";
+char temp[8] = "";
 unsigned int sum = 0;		// Somme des codes ASCII du message + un espace
 unsigned char i = 0;
   strcpy(regex, label);		
-  strcat(regex,  ".(%w+).(%w+)");
+
+  strcat(regex,  ".([0-9]+)(.)(.)");
 #if DEBUG  
   Serial.println(regex);
 #endif
   ms->Match (regex);
   ms->GetCapture(value, 0);
-  ms->GetCapture(checksum, 1);
+  ms->GetCapture(checksum, 2);
 #if DEBUG  
   Serial.print(label);Serial.print(":"); Serial.println(value);
   Serial.print("CKSUM:"); Serial.println(checksum);
@@ -238,7 +224,7 @@ char value [32] = "";
 
   Serial.print ("Free Mem: ");Serial.print (freeRam());Serial.println (" B");
   
-#if 1
+#if READ_TELEINFO
   /* Read a teleinfo frame */
   mySerialOne.listen();
 
@@ -274,7 +260,7 @@ char value [32] = "";
   /* string we are searching in */
   ms.Target (frame);
   // original buffer
-  Serial.println (frame);
+//  Serial.println (frame);
     
   if (findInMatch(&ms, "HCHC",  value))  emontx.hchc =   (unsigned int)(atol(value)/1000);      
   if (findInMatch(&ms, "HCHP",  value))  emontx.hchp =   (unsigned int)(atol(value)/1000); 
