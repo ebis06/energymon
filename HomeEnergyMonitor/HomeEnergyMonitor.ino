@@ -160,7 +160,7 @@ void loop()
     
     last_switch_state = switch_state;
     switch_state = digitalRead(switch1);  
-    if (!last_switch_state && switch_state) { page += 1; if (page>3) page = 1; }
+    if (!last_switch_state && switch_state) { page += 1; if (page>4) page = 1; }
     
     if (page==1)
     {
@@ -173,6 +173,10 @@ void loop()
     if (page == 3)
     {
       draw_raw2_page(&emontx);
+    }
+    if (page == 4)
+    {
+      draw_raw3_page(&emontx);
     }
     draw_temperature_time_footer(temp, mintemp, maxtemp, hour,minute);
     glcd.refresh();

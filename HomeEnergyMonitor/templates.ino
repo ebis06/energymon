@@ -85,6 +85,26 @@ void draw_raw2_page(PayloadTX *emontx)
   glcd.drawString(70,36,str);  
 }
 
+void draw_raw3_page(PayloadTX *emontx)
+{ 
+  
+  glcd.clear();
+  glcd.fillRect(0,0,128,64,0);
+  
+  char str[50];    			 //variable to store conversion 
+  glcd.setFont(font_clR6x6);      
+  strcpy(str,"PTEC:");
+  glcd.drawString(0,0,str);
+  //itoa((int)emontx->ptec,str,10);
+  strcpy(str, emontx->ptec);
+  glcd.drawString(70,0,str);
+  
+  strcpy(str,"Battery: ");
+  glcd.drawString(0,9,str);
+  itoa((int)emontx->battery,str,10);
+  strcat(str," V");   
+  glcd.drawString(70,9,str);  
+}
 
 //------------------------------------------------------------------
 // Draws a page showing a single power and energy value in big font
