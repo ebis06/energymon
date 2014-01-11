@@ -13,16 +13,17 @@ void draw_raw1_page(PayloadTX *emontx)
   glcd.fillRect(0,0,128,64,0);
   
   char str[50];    			 //variable to store conversion 
+  char str1[50];    			 //variable to store conversion 
   glcd.setFont(font_clR6x6);      
   strcpy(str,"HCHC:");
   glcd.drawString(0,0,str);
-  itoa((int)emontx->hchc,str,10);
+  ltoa((long)((long)(0x086<<16)+emontx->hchc),str,10);
   strcat(str," kWh");   
   glcd.drawString(70,0,str);
   
   strcpy(str,"HCHP:");
   glcd.drawString(0,9,str);
-  itoa((int)emontx->hchp,str,10);
+  ltoa((long)((long)(0x0D8<<16)+emontx->hchp),str,10);
   strcat(str," kWh");   
   glcd.drawString(70,9,str);
   
@@ -96,7 +97,7 @@ void draw_raw3_page(PayloadTX *emontx)
   strcpy(str,"PTEC:");
   glcd.drawString(0,0,str);
   //itoa((int)emontx->ptec,str,10);
-  strcpy(str, emontx->ptec);
+  strcpy(str, (emontx->ptecHC == 1) ? "HC" : "HP");
   glcd.drawString(70,0,str);
   
   strcpy(str,"Battery: ");

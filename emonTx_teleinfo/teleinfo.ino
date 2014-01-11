@@ -33,8 +33,8 @@ void emontx_sleep(int seconds) {
   // } else Sleepy::loseSomeTime(seconds*1000);
 }
 
-
-int findInMatch(MatchState* ms, char* label, char* value)
+  
+int findInMatch(MatchState* ms, char* label, char* matchPat, char* value)
 {
 char regex [24] = "";
 char checksum[8] = "";
@@ -43,7 +43,9 @@ unsigned int sum = 0;		// Somme des codes ASCII du message + un espace
 unsigned char i = 0;
   strcpy(regex, label);		
 
-  strcat(regex,  ".([0-9]+)(.)(.)");
+//  strcat(regex,  ".([0-9]+)(.)(.)");
+  strcat(regex,  matchPat);
+  
 #if DEBUG  
   Serial.println(regex);
 #endif
@@ -89,11 +91,15 @@ unsigned char i = 0;
   Serial.print("Provided checksum: ");Serial.println(checksum);
 #endif
   if(sum == checksum[0]) {
+#if (~READ_TELEINFO)
     Serial.print("Found correct "); Serial.print(label);Serial.print(" with value ");Serial.println(value);
+#endif
     return 1;
   }  
   else {
+#if (~READ_TELEINFO)
     Serial.print("Found incorrect checksum for "); Serial.print(label);Serial.print(" with value ");Serial.print(value);Serial.print(" and checksum ");Serial.println(sum);
+#endif
     return 0;
   }
 }

@@ -33,7 +33,7 @@ typedef struct {
   unsigned int pmax;
   unsigned int papp; 
   unsigned int battery;
-  char ptec[4]; 
+  char ptecHC; 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 PayloadTX emontx;                                                       
 
@@ -72,7 +72,7 @@ OPTARIF HC.. < \
 ISOUSC 20 8 \
 HCHC 008784338 / \
 HCHP 014186978 ? \
-PTEC HP..   \
+PTEC HP..   \  
 IINST1 001 I \
 IINST2 003 L \
 IINST3 004 N \
@@ -89,7 +89,7 @@ PPOT 00 #";
 int i = 0;
 
 extern int freeRam (void);
-extern int findInMatch(MatchState* ms, char* label, char* value);
+extern int findInMatch(MatchState* ms, char* label, char * matchPat, char* value);
 extern void send_rf_data(void);
 extern void emontx_sleep(int seconds);
 
@@ -172,17 +172,17 @@ char value [32] = "";
   // original buffer
 //  Serial.println (frame);
     
-  if (findInMatch(&ms, "HCHC",  value))  emontx.hchc =   (unsigned int)(atol(value)/1000);      
-  if (findInMatch(&ms, "HCHP",  value))  emontx.hchp =   (unsigned int)(atol(value)/1000); 
-  if (findInMatch(&ms, "IINST1",value))  emontx.iinst1 = atol(value);      
-  if (findInMatch(&ms, "IINST2",value))  emontx.iinst2 = atol(value);      
-  if (findInMatch(&ms, "IINST3",value))  emontx.iinst3 = atol(value);      
-  if (findInMatch(&ms, "IMAX1", value))  emontx.imax1 =  atol(value);      
-  if (findInMatch(&ms, "IMAX2", value))  emontx.imax2 =  atol(value);      
-  if (findInMatch(&ms, "IMAX3", value))  emontx.imax3 =  atol(value);      
-  if (findInMatch(&ms, "PMAX",  value))  emontx.pmax =   atol(value);      
-  if (findInMatch(&ms, "PAPP",  value))  emontx.papp =   atol(value);      
-  if (findInMatch(&ms, "PTEC",  value))  strcpy(emontx.ptec, value);      
+  if (findInMatch(&ms, "HCHC",  ".([0-9]+)(.)(.)", value))  emontx.hchc =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000);      
+  if (findInMatch(&ms, "HCHP",  ".([0-9]+)(.)(.)", value))  emontx.hchp =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000); 
+  if (findInMatch(&ms, "IINST1",".([0-9]+)(.)(.)", value))  emontx.iinst1 = atol(value);      
+  if (findInMatch(&ms, "IINST2",".([0-9]+)(.)(.)", value))  emontx.iinst2 = atol(value);      
+  if (findInMatch(&ms, "IINST3",".([0-9]+)(.)(.)", value))  emontx.iinst3 = atol(value);      
+  if (findInMatch(&ms, "IMAX1", ".([0-9]+)(.)(.)", value))  emontx.imax1 =  atol(value);      
+  if (findInMatch(&ms, "IMAX2", ".([0-9]+)(.)(.)", value))  emontx.imax2 =  atol(value);      
+  if (findInMatch(&ms, "IMAX3", ".([0-9]+)(.)(.)", value))  emontx.imax3 =  atol(value);      
+  if (findInMatch(&ms, "PMAX",  ".([0-9]+)(.)(.)", value))  emontx.pmax =   atol(value);      
+  if (findInMatch(&ms, "PAPP",  ".([0-9]+)(.)(.)", value))  emontx.papp =   atol(value);      
+  if (findInMatch(&ms, "PTEC",  ".(....)(.)(.)", value))  emontx.ptecHC == (value=="HC.." ? 1 : 0);      
   
   // because millis() returns to zero after 50 days ! 
 //  Serial.println(millis());

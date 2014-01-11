@@ -12,6 +12,6 @@ typedef struct {
   unsigned int pmax;
   unsigned int papp; 
   unsigned int battery; 
-  char ptec[4]; 
+  char ptecHC; 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 #endif

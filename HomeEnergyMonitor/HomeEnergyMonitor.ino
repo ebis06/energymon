@@ -92,7 +92,7 @@ int cval_use = 0;
 //-------------------------------------------------------------------------------------------- 
 unsigned long last_emontx;                   // Used to count time from last emontx update
 unsigned long last_emonbase;                   // Used to count time from last emontx update
-
+unsigned int first_time = 1;
 //--------------------------------------------------------------------------------------------
 // Setup
 //--------------------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ void setup()
   pinMode(greenLED, OUTPUT); 
   pinMode(redLED, OUTPUT); 
 
-//  Serial.begin (9600);
+  Serial.begin (9600);
 }
 
 //--------------------------------------------------------------------------------------------
@@ -128,7 +128,19 @@ void loop()
     if (rf12_crc == 0 && (rf12_hdr & RF12_HDR_CTL) == 0)  // and no rf errors
     {
       int node_id = (rf12_hdr & 0x1F);
-      if (node_id == 10) {emontx = *(PayloadTX*) rf12_data; last_emontx = millis();}  //Assuming 10 is the emonTx NodeID
+      if (node_id == 10)  //Assuming 10 is the emonTx NodeID 
+      {
+        emontx = *(PayloadTX*) rf12_data; 
+        last_emontx = millis();
+
+        if(first_time)
+        {
+          previousHchp = emontx.hchp;
+          previousHchc = emontx.hchc;
+          first_time = 0;
+        }
+        digitalWrite(greenLED, HIGH); delay(4); digitalWrite(greenLED, LOW);  
+      } 
       
       if (node_id == 15)			//Assuming 15 is the emonBase node ID
       {
@@ -156,7 +168,10 @@ void loop()
     previousHchc = emontx.hchc;
     
     if (last_hour == 23 && hour == 00) usekwhHc = usekwhHp = 0;                //reset Kwh/d counter at midnight
-    cval_use = cval_use + (emontx.papp - cval_use)*0.50;        //smooth transitions
+    
+    if(emontx.papp > 0)
+      //cval_use = cval_use + (emontx.papp - cval_use)*0.50;        //smooth transitions
+      cval_use = emontx.papp;//smooth transitions
     
     last_switch_state = switch_state;
     switch_state = digitalRead(switch1);  
@@ -198,6 +213,9 @@ void loop()
    
     emonglcd.temperature = (int) (temp * 100);                          // set emonglcd payload
     rf12_sendNow(0, &emonglcd, sizeof emonglcd);                     //send temperature data via RFM12B using new rf12_sendNow wrapper -glynhudson
+    rf12_sendWait(2);    
+
+    rf12_sendNow(0, &emontx, sizeof emontx);                     //relay emontx
     rf12_sendWait(2);    
   }
 }
