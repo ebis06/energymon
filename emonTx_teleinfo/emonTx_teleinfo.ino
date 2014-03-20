@@ -33,13 +33,19 @@ typedef struct {
   unsigned int pmax;
   unsigned int papp; 
   unsigned int battery;
-  char ptecHC; 
+  char ptecHC;
+  int power1; 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 PayloadTX emontx;                                                       
 
 //#define FILTERSETTLETIME 5000              //  Time (ms) to allow the filters to settle before sending data
 
 #define FILTERSETTLETIME 500             //  Time (ms) to allow the filters to settle before sending data
+
+const int CT1 = 1;
+const int CT2 = 0; // Set to 0 to disable CT channel 2
+const int CT3 = 0; // Set to 0 to disable CT channel 3
+
 
 #define FRAME_SIZE (256)
 
@@ -54,12 +60,12 @@ const int UNO = 1;                         // Set to 0 if your not using the UNO
 ISR(WDT_vect) { Sleepy::watchdogEvent(); } // Attached JeeLib sleep function to Atmega328 watchdog - enables MCU to be put into sleep mode inbetween readings to reduce power consumption 
 
 #include "EmonLib.h"
-EnergyMonitor ct1;                         // Create  instances for each CT channel
+EnergyMonitor ct1, ct2, ct3;                         // Create  instances for each CT channel
 
 const int LEDpin = 9;                      // On-board emonTx LED 
 
 boolean settled = false;
-SoftwareSerial mySerialOne(5, 6);
+SoftwareSerial mySerialOne(6, 5);
 SoftwareSerial mySerialTwo(8, 9); // Dummy connection to be able to disable mySerialOne
 char receivedChar ='\0';
 
@@ -119,6 +125,11 @@ void setup ()
   emontx.iinst1 = emontx.iinst2= emontx.iinst3 = 0;
   emontx.papp = emontx.pmax = 0;
 
+  if (CT1) ct1.currentTX(1, 111.1); // Setup emonTX CT channel (ADC input, calibration)
+  if (CT2) ct2.currentTX(2, 111.1); // Calibration factor = CT ratio / burden resistance
+  if (CT3) ct3.currentTX(3, 111.1); // Calibration factor = (100A / 0.05A) / 33 Ohms
+
+
 }  // end of setup  
 
 void loop () {
@@ -135,6 +146,21 @@ char value [32] = "";
   //Serial.println(); 
   delay(100);
   Serial.print ("Free Mem: ");Serial.print (freeRam());Serial.println (" B");
+
+  if (CT1) {
+    emontx.power1 = ct1.calcIrms(1480) * 240.0; //ct.calcIrms(number of wavelengths sample)*AC RMS voltage
+  //  Serial.print(emontx.power1);
+  }
+  
+  if (CT2) {
+ //   emontx.power2 = ct2.calcIrms(1480) * 240.0;
+  //  Serial.print(" "); Serial.print(emontx.power2);
+  }
+
+  if (CT3) {
+   // emontx.power3 = ct3.calcIrms(1480) * 240.0;
+  //  Serial.print(" "); Serial.print(emontx.power3);
+  } 
 
 #if READ_TELEINFO
   /* Read a teleinfo frame */

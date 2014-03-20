@@ -215,7 +215,7 @@ void loop()
     rf12_sendNow(0, &emonglcd, sizeof emonglcd);                     //send temperature data via RFM12B using new rf12_sendNow wrapper -glynhudson
     rf12_sendWait(2);    
 
-    rf12_sendNow(0, &emontx, sizeof emontx);                     //relay emontx
-    rf12_sendWait(2);    
+//    rf12_sendNow(0, &emontx, sizeof emontx);                     //relay emontx
+//    rf12_sendWait(2);    
   }
 }
