@@ -71,15 +71,15 @@ double temp,maxtemp,mintemp;
 //---------------------------------------------------
 //typedef struct { int power1, power2, power3, Vrms; } PayloadTX;         // neat way of packaging data for RF comms
 PayloadTX emontx;
-unsigned int previousHchc = 0;
-unsigned int previousHchp = 0;
+unsigned long previousHchc = 0;
+unsigned long previousHchp = 0;
     
 typedef struct { int temperature; } PayloadGLCD;
 PayloadGLCD emonglcd;
 
 int hour = 12, minute = 0;
-double usekwhHp = 0;
-double usekwhHc = 0;
+float usekwhHp = 0;
+float usekwhHc = 0;
 byte page = 1;
 
 const int greenLED=6;               // Green tri-color LED
@@ -135,8 +135,8 @@ void loop()
 
         if(first_time)
         {
-          previousHchp = emontx.hchp;
-          previousHchc = emontx.hchc;
+          previousHchp = long(emontx.hchp)*1000 + long(emontx.hchpDec);
+          previousHchc = long(emontx.hchc)*1000 + long(emontx.hchcDec);
           first_time = 0;
         }
         digitalWrite(greenLED, HIGH); delay(4); digitalWrite(greenLED, LOW);  
@@ -145,6 +145,9 @@ void loop()
       if (node_id == 15)			//Assuming 15 is the emonBase node ID
       {
         RTC.adjust(DateTime(2012, 1, 1, rf12_data[1], rf12_data[2], rf12_data[3]));
+        Serial.println(rf12_data[1]);
+        Serial.println(rf12_data[2]);
+        Serial.println(rf12_data[3]);
         last_emonbase = millis();
       }
     }
@@ -162,10 +165,10 @@ void loop()
     hour = now.hour();
     minute = now.minute();
 
-    usekwhHp += (emontx.hchp - previousHchp)*0.2/3600; //(emontx.power1 * 0.2) / 3600000;
-    usekwhHc += (emontx.hchc - previousHchc)*0.2/3600; //(emontx.power1 * 0.2) / 3600000;
-    previousHchp = emontx.hchp;
-    previousHchc = emontx.hchc;
+    usekwhHp += float(((long(emontx.hchp)*1000 + long(emontx.hchpDec)) - previousHchp))*0.2/3600.0; //(emontx.power1 * 0.2) / 3600000;
+    usekwhHc += float(((long(emontx.hchc)*1000 + long(emontx.hchcDec)) - previousHchc))*0.2/3600.0; //(emontx.power1 * 0.2) / 3600000;
+    previousHchp = long(emontx.hchp)*1000 + long(emontx.hchpDec);
+    previousHchc = long(emontx.hchc)*1000 + long(emontx.hchcDec);
     
     if (last_hour == 23 && hour == 00) usekwhHc = usekwhHp = 0;                //reset Kwh/d counter at midnight
     

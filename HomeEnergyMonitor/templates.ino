@@ -17,15 +17,16 @@ void draw_raw1_page(PayloadTX *emontx)
   glcd.setFont(font_clR6x6);      
   strcpy(str,"HCHC:");
   glcd.drawString(0,0,str);
-  ltoa((long)((long)(0x086<<16)+emontx->hchc),str,10);
-  strcat(str," kWh");   
-  glcd.drawString(70,0,str);
+
+  ltoa(long(emontx->hchc)*1000+long(emontx->hchcDec),str,10);
+  strcat(str," Wh");   
+  glcd.drawString(55,0,str);
   
   strcpy(str,"HCHP:");
   glcd.drawString(0,9,str);
-  ltoa((long)((long)(0x0D8<<16)+emontx->hchp),str,10);
-  strcat(str," kWh");   
-  glcd.drawString(70,9,str);
+  ltoa(long(emontx->hchp)*1000 + long(emontx->hchpDec),str,10);
+  strcat(str," Wh");   
+  glcd.drawString(55,9,str);
   
   strcpy(str,"IINST1: ");
   glcd.drawString(0,18,str);

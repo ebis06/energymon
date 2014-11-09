@@ -9,7 +9,7 @@
 	- EmonLib		https://github.com/openenergymonitor/EmonLib.git
         - Software Serial
  Other libraries:
-        - Regex 
+        - Regex                 https://github.com/nickgammon/Regexp
 */
 #ifndef REGEXP
 #define REGEXP
@@ -33,8 +33,11 @@ typedef struct {
   unsigned int pmax;
   unsigned int papp; 
   unsigned int battery;
-  char ptecHC;
+  int ptecHC;
   int power1; 
+  unsigned int hchcDec;  
+  unsigned int hchpDec;
+
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 PayloadTX emontx;                                                       
 
@@ -121,6 +124,10 @@ void setup ()
   /* Init the TxPayload Structure */
   emontx.hchc = 0;
   emontx.hchp = 0;
+
+  emontx.hchcDec = 0;
+  emontx.hchpDec = 0;
+
   emontx.imax1 = emontx.imax2= emontx.imax3 = 0;
   emontx.iinst1 = emontx.iinst2= emontx.iinst3 = 0;
   emontx.papp = emontx.pmax = 0;
@@ -134,6 +141,9 @@ void setup ()
 
 void loop () {
 char value [32] = ""; 
+char hourInt [8] = ""; 
+char hourDec [8] = ""; 
+
 #if TEST_SERIAL
   mySerialOne.listen();
   if (mySerialOne.available())
@@ -149,17 +159,16 @@ char value [32] = "";
 
   if (CT1) {
     emontx.power1 = ct1.calcIrms(1480) * 240.0; //ct.calcIrms(number of wavelengths sample)*AC RMS voltage
-  //  Serial.print(emontx.power1);
-  }
-  
+    Serial.print(emontx.power1);
+  }  
   if (CT2) {
- //   emontx.power2 = ct2.calcIrms(1480) * 240.0;
-  //  Serial.print(" "); Serial.print(emontx.power2);
+   // emontx.power2 = ct2.calcIrms(1480) * 240.0;
+   // Serial.print(" "); Serial.print(emontx.power2);
   }
 
   if (CT3) {
-   // emontx.power3 = ct3.calcIrms(1480) * 240.0;
-  //  Serial.print(" "); Serial.print(emontx.power3);
+    //emontx.power3 = ct3.calcIrms(1480) * 240.0;
+    //Serial.print(" "); Serial.print(emontx.power3);
   } 
 
 #if READ_TELEINFO
@@ -190,16 +199,45 @@ char value [32] = "";
   mySerialTwo.listen();
 #endif
 
-  /* Match state object */
+    /* Match state object */
   MatchState ms;
+  MatchState ms2;
+  
   
   /* string we are searching in */
   ms.Target (frame);
   // original buffer
 //  Serial.println (frame);
     
-  if (findInMatch(&ms, "HCHC",  ".([0-9]+)(.)(.)", value))  emontx.hchc =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000);      
-  if (findInMatch(&ms, "HCHP",  ".([0-9]+)(.)(.)", value))  emontx.hchp =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000); 
+  if (findInMatch(&ms, "HCHC",  ".([0-9]+)(.)(.)", value))  
+  {
+    //Serial.write(atol(value.substring(0,5)));
+    ms2.Target(value);
+    ms2.Match ("(%d%d%d%d%d%d)(%d%d%d)");
+    ms2.GetCapture(hourInt, 0);
+    ms2.GetCapture(hourDec, 1);
+    
+    
+    
+//    Serial.println("Interger part");    
+//    Serial.println((hourInt));
+//    Serial.println("Decimal part");    
+//    Serial.println((hourDec));
+    
+    //Serial.println("end of sring");    
+   // emontx.hchc =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000);
+    emontx.hchc =   (unsigned int)(atol(hourInt));    
+    emontx.hchcDec = (unsigned int)(atol(hourDec));
+  }
+  if (findInMatch(&ms, "HCHP",  ".([0-9]+)(.)(.)", value))  {
+    ms2.Target(value);
+    ms2.Match ("(%d%d%d%d%d%d)(%d%d%d)");
+    ms2.GetCapture(hourInt, 0);
+    ms2.GetCapture(hourDec, 1);
+//    emontx.hchp =   (unsigned int)(atol(value) & 0xFFFF); //(atol(value)/1000); 
+    emontx.hchp =   (unsigned int)(atol(hourInt));    
+    emontx.hchpDec = (unsigned int)(atol(hourDec));
+  }
   if (findInMatch(&ms, "IINST1",".([0-9]+)(.)(.)", value))  emontx.iinst1 = atol(value);      
   if (findInMatch(&ms, "IINST2",".([0-9]+)(.)(.)", value))  emontx.iinst2 = atol(value);      
   if (findInMatch(&ms, "IINST3",".([0-9]+)(.)(.)", value))  emontx.iinst3 = atol(value);      

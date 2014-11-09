@@ -12,7 +12,9 @@ typedef struct {
   unsigned int pmax;
   unsigned int papp; 
   unsigned int battery; 
-  char ptecHC; 
-  int power1; 
+  int ptecHC; 
+  int power1;
+   unsigned int hchcDec;  
+  unsigned int hchpDec 
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 #endif
