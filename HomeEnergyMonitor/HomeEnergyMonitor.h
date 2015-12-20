@@ -15,6 +15,6 @@ typedef struct {
   int ptecHC; 
   int power1;
    unsigned int hchcDec;  
-  unsigned int hchpDec 
+  unsigned int hchpDec;
 } PayloadTX;      // create structure - a neat way of packaging data for RF comms
 #endif

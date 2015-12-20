@@ -32,75 +32,84 @@ void emontx_sleep(int seconds) {
     } 
   // } else Sleepy::loseSomeTime(seconds*1000);
 }
-
   
 int findInMatch(MatchState* ms, char* label, char* matchPat, char* value)
 {
 char regex [24] = "";
 char checksum[8] = "";
 char temp[8] = "";
+char result;
 unsigned int sum = 0;		// Somme des codes ASCII du message + un espace
 unsigned char i = 0;
+  
+  /* Build a string with the label and the pattern */   
   strcpy(regex, label);		
-
-//  strcat(regex,  ".([0-9]+)(.)(.)");
-  strcat(regex,  matchPat);
+  strcat(regex, matchPat);  //  strcat(regex,  ".([0-9]+)(.)(.)");
   
+  /* Match the label + pattern */
+  result = ms->Match (regex);
+  
+  if ( result == REGEXP_MATCHED)
+  {
 #if DEBUG  
-  Serial.println(regex);
+    Serial.println(regex);
 #endif
-  ms->Match (regex);
-  ms->GetCapture(value, 0);
-  ms->GetCapture(checksum, 2);
+    ms->GetCapture(value, 0);      /* Get the value associated with the label */
+    ms->GetCapture(checksum, 2);   /* Get the checksum */
 #if DEBUG  
-  Serial.print(label);Serial.print(":"); Serial.println(value);
-  Serial.print("CKSUM:"); Serial.println(checksum);
+    Serial.print(label);Serial.print(":"); Serial.println(value);
+    Serial.print("CKSUM:"); Serial.println(checksum);
 #endif
-  sum = 0x40;
 
+    /* Compute the checksum */
+    sum = 0x40;
 #if DEBUG
-  Serial.print("lENGTH of labal = ");Serial.println(strlen(label), DEC);
-  Serial.print("lENGTH of value = ");Serial.println(strlen(value), DEC);
-#endif
-  
-  for (i=0; i < strlen(label); i++) {
+    Serial.print("lENGTH of labal = ");Serial.println(strlen(label), DEC);
+    Serial.print("lENGTH of value = ");Serial.println(strlen(value), DEC);
+#endif  
+    for (i=0; i < strlen(label); i++) {
 #if DEBUG    
-    Serial.print("First sum = ");Serial.print(sum, HEX);Serial.print(" Label[i] = ");Serial.print(label[i], HEX);
+      Serial.print("First sum = ");Serial.print(sum, HEX);Serial.print(" Label[i] = ");Serial.print(label[i], HEX);
 #endif
-    sum = sum + label[i];
+      sum = sum + label[i];
 #if DEBUG    
-    Serial.print(" Updated sum = ");Serial.println(sum, HEX);
+      Serial.print(" Updated sum = ");Serial.println(sum, HEX);
 #endif
-
-  }
+    }
 #if DEBUG  
-  Serial.print("Value length = ");Serial.println(strlen(value));
+    Serial.print("Value length = ");Serial.println(strlen(value));
 #endif
-  for (i=0; i < strlen(value); i++) {
+    for (i=0; i < strlen(value); i++) {
 #if DEBUG    
-    Serial.print("First sum = "); Serial.print(sum, HEX); Serial.print(" value[i] = "); Serial.print(value[i], HEX);
+      Serial.print("First sum = "); Serial.print(sum, HEX); Serial.print(" value[i] = "); Serial.print(value[i], HEX);
 #endif
-    sum = sum + value[i];
+      sum = sum + value[i];
 #if DEBUG    
-    Serial.print(" Updated sum = ");Serial.println(sum, HEX);
+      Serial.print(" Updated sum = ");Serial.println(sum, HEX);
 #endif
-  }
+    }
     sum = ((sum + 0X20) & 0x3F) + 0x20 ;
 #if DEBUG
-  Serial.print("Computed checksum: ");Serial.println(sum, HEX);
-  Serial.print("Provided checksum: ");Serial.println(checksum);
+    Serial.print("Computed checksum: ");Serial.println(sum, HEX);
+    Serial.print("Provided checksum: ");Serial.println(checksum);
 #endif
-  if(sum == checksum[0]) {
-#if (~READ_TELEINFO)
-    Serial.print("Found correct "); Serial.print(label);Serial.print(" with value ");Serial.println(value);
+
+    if(sum == checksum[0]) {
+#if (READ_TELEINFO)
+      Serial.print("Found correct "); Serial.print(label);Serial.print(" with value ");Serial.println(value);
 #endif
-    return 1;
-  }  
+      return 1;
+    }  
+    else {
+#if (READ_TELEINFO)
+      Serial.print("Found incorrect checksum for "); Serial.print(label);Serial.print(" with value ");Serial.print(value);Serial.print(" and checksum ");Serial.println(sum);
+#endif
+      return 0;
+    }
+  }
   else {
-#if (~READ_TELEINFO)
-    Serial.print("Found incorrect checksum for "); Serial.print(label);Serial.print(" with value ");Serial.print(value);Serial.print(" and checksum ");Serial.println(sum);
-#endif
-    return 0;
+      Serial.print("No match for "); Serial.println(label);
+      return 0;
   }
 }
   

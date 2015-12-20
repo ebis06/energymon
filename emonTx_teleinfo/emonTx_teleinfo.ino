@@ -1,9 +1,7 @@
 /*
  EmonTx Teleinfo
-
  An example sketch for the emontx module for 
  EDF's teleinformation monitoring
-
  Libraries in the standard arduino libraries folder:
 	- JeeLib		https://github.com/jcw/jeelib
 	- EmonLib		https://github.com/openenergymonitor/EmonLib.git
@@ -68,32 +66,19 @@ EnergyMonitor ct1, ct2, ct3;                         // Create  instances for ea
 const int LEDpin = 9;                      // On-board emonTx LED 
 
 boolean settled = false;
-SoftwareSerial mySerialOne(6, 5);
-SoftwareSerial mySerialTwo(8, 9); // Dummy connection to be able to disable mySerialOne
+
+const byte teleRxPin = 7; // Pin Digital #6
+const byte teleTxPin = 5; // Pin Digital #5
+
+const byte dummyRxPin = 6; // Pin Digital #6
+const byte dummyTxPin = 5; // Pin Digital #5
+
+SoftwareSerial mySerialOne(teleRxPin, teleTxPin);
+SoftwareSerial mySerialTwo(dummyRxPin, dummyTxPin); // Dummy connection to be able to disable mySerialOne
 char receivedChar ='\0';
 
-#if READ_TELEINFO
+
 char frame[FRAME_SIZE];
-#else
-/* Example of data transmitted:*/
-char frame[FRAME_SIZE] ="ADCO 041130079749 D \
-OPTARIF HC.. < \
-ISOUSC 20 8 \
-HCHC 008784338 / \
-HCHP 014186978 ? \
-PTEC HP..   \  
-IINST1 001 I \
-IINST2 003 L \
-IINST3 004 N \
-IMAX1 021 3 \
-IMAX2 031 5 \
-IMAX3 030 5 \
-PMAX 12780 8  \
-PAPP 01880 2 \
-HHPHC A , \
-MOTDETAT 000000 B \
-PPOT 00 #";
-#endif
 
 int i = 0;
 
@@ -107,6 +92,7 @@ void setup ()
 {
   Serial.begin (9600);
   Serial.println ("Reset");
+
 
   mySerialOne.begin(1200);  
   mySerialTwo.begin(1200);
@@ -143,7 +129,7 @@ void loop () {
 char value [32] = ""; 
 char hourInt [8] = ""; 
 char hourDec [8] = ""; 
-
+  digitalWrite(LEDpin, LOW);
 #if TEST_SERIAL
   mySerialOne.listen();
   if (mySerialOne.available())
@@ -266,4 +252,3 @@ char hourDec [8] = "";
   }
 }
 #endif
-
